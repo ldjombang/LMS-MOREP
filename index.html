@@ -1,50 +1,198 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LMS MOREP Jombang</title>
-  <link rel="icon" href="https://www.morarepublic.co.id/_nuxt/logo_morarepublic.CUMDR9Ot.png" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Web Google Apps Script</title>
   <style>
+    :root {
+      --primary-color: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg-color: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-color: #1f2937;
+      --border-color: #e5e7eb;
+    }
+
     * {
       box-sizing: border-box;
-    }
-
-    html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
-      height: 100%;
-      background-color: #eee;
-      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    .iframe-container {
-      width: 100%;
-      height: 100vh;
-      height: 100dvh;
-      overflow: hidden;
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
     }
 
-    iframe {
+    .container {
+      background-color: var(--card-bg);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 600px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      text-align: center;
+      color: var(--primary-color);
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
       display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    input, select, textarea {
       width: 100%;
-      height: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary-color);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: var(--primary-color);
+      color: white;
       border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--primary-hover);
+    }
+
+    button:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #6b7280;
+    }
+
+    #response {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+      word-break: break-word;
+    }
+
+    .success {
+      background-color: #def7ec;
+      color: #03543f;
+      border: 1px solid #84e1bc;
+    }
+
+    .error {
+      background-color: #fde8e8;
+      color: #9b1c1c;
+      border: 1px solid #f8b4b4;
     }
   </style>
 </head>
 <body>
-  <div class="iframe-container">
-    <iframe
-      id="app"
-      src="https://script.google.com/macros/s/AKfycbzYGY3dhYh2zaGxv2oHbhtNg_4mjvlNEQRxAzrhBj3gKx_j_lUhPnlEfkNG3T3GiBVQ/exec"
-      scrolling="yes"
-      allowfullscreen="true"
-      webkitallowfullscreen="true"
-      mozallowfullscreen="true"
-      allow="fullscreen; camera; microphone; display-capture; geolocation;">
-    </iframe>
+
+  <div class="container">
+    <h1>Integrasi Google Apps Script</h1>
+    
+    <form id="scriptForm">
+      <div class="form-group">
+        <label for="nama">Nama Lengkap</label>
+        <input type="text" id="nama" name="nama" placeholder="Masukkan nama Anda" required>
+      </div>
+
+      <div class="form-group">
+        <label for="pesan">Pesan / Catatan</label>
+        <textarea id="pesan" name="pesan" rows="4" placeholder="Tulis pesan Anda di sini..." required></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn">Kirim Data</button>
+    </form>
+
+    <div id="loading">Mengirim data, mohon tunggu...</div>
+    <div id="response"></div>
   </div>
+
+  <script>
+    // URL Web App Google Apps Script Anda
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhOcqWP16rSQWsPOtNNF6AVyfrV4adGA-3_QbmXrpsBue_Q5gf2aunLbA1ge01GcNI/exec";
+
+    const form = document.getElementById('scriptForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const loading = document.getElementById('loading');
+    const responseDiv = document.getElementById('response');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      // Tampilkan indikator loading dan nonaktifkan tombol
+      submitBtn.disabled = true;
+      loading.style.display = 'block';
+      responseDiv.style.display = 'none';
+
+      // Ambil data dari form
+      const formData = new FormData(form);
+
+      // Kirim permintaan via POST ke Google Apps Script
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        loading.style.display = 'none';
+        submitBtn.disabled = false;
+        
+        responseDiv.style.display = 'block';
+        responseDiv.className = 'success';
+        responseDiv.innerHTML = `<strong>Berhasil!</strong> ${data.message || 'Data telah tersimpan.'}`;
+        
+        form.reset();
+      })
+      .catch(error => {
+        loading.style.display = 'none';
+        submitBtn.disabled = false;
+        
+        responseDiv.style.display = 'block';
+        responseDiv.className = 'error';
+        responseDiv.innerHTML = `<strong>Gagal!</strong> Terjadi kesalahan saat mengirim data.`;
+        console.error('Error:', error);
+      });
+    });
+  </script>
+
 </body>
 </html>
